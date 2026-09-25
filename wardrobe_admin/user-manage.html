@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - Vivi Style后台</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="../wardrobe_user/css/style.css">
+    <style>
+        .admin-header {
+            background-color: #4682B4;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .admin-header .title {
+            color: #fff;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .admin-header .nav-links {
+            margin-left: 40px;
+            display: flex;
+            gap: 20px;
+        }
+        .admin-header .nav-links a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+        .admin-header .nav-links a:hover,
+        .admin-header .nav-links a.active {
+            color: #fff;
+        }
+        .admin-header .user-info {
+            margin-left: auto;
+            color: #fff;
+            font-size: 13px;
+        }
+        .admin-header .user-info a {
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            margin-left: 10px;
+        }
+        .admin-header .user-info a:hover {
+            color: #fff;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-box {
+            background: #fff;
+            border-radius: 8px;
+            padding: 30px;
+            width: 420px;
+            max-width: 90%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .modal-box h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .modal-box .form-actions {
+            margin-top: 20px;
+        }
+        .modal-box .form-group {
+            margin-bottom: 15px;
+        }
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+        .user-table th, .user-table td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #ebeef5;
+        }
+        .user-table th {
+            background-color: #f5f7fa;
+            color: #606266;
+            font-weight: bold;
+        }
+        .user-table tr:hover {
+            background-color: #f5f7fa;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-top: 20px;
+        }
+        .pagination button {
+            padding: 6px 12px;
+            border: 1px solid #dcdfe6;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            color: #606266;
+            font-size: 13px;
+        }
+        .pagination button:hover {
+            border-color: #409EFF;
+            color: #409EFF;
+        }
+        .pagination button.active {
+            background: #409EFF;
+            color: #fff;
+            border-color: #409EFF;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination .page-info {
+            margin: 0 10px;
+            color: #606266;
+            font-size: 13px;
+        }
+        .action-btn {
+            padding: 5px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .action-btn.edit {
+            background-color: #409EFF;
+            color: #fff;
+        }
+        .action-btn.edit:hover {
+            background-color: #66b1ff;
+        }
+        .action-btn.delete {
+            background-color: #F56C6C;
+            color: #fff;
+            margin-left: 5px;
+        }
+        .action-btn.delete:hover {
+            background-color: #f78989;
+        }
+        .pagination select {
+            padding: 6px 8px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            color: #606266;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <span class="title">Vivi Style 后台管理</span>
+        <div class="nav-links">
+            <a href="home.html">首页</a>
+            <a href="clothes-manage.html">服装管理</a>
+            <a href="user-manage.html" class="active">用户管理</a>
+            <a href="order-manage.html">订单管理</a>
+        </div>
+        <div class="user-info">
+            <span id="admin-username"></span>
+            <a href="login.html" onclick="logout()">退出登录</a>
+        </div>
+    </div>
+
+    <div id="main-container">
+        <div class="box-card">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <input type="text" id="search-input" class="search-input" placeholder="搜索用户名或手机号">
+                    <button class="el-button el-button--primary search-button" onclick="searchUsers()">搜索</button>
+                </div>
+                <button class="el-button el-button--primary" onclick="showAddModal()">添加用户</button>
+            </div>
+
+            <table class="user-table" id="user-table">
+                <thead>
+                    <tr>
+                        <th>编号</th>
+                        <th>用户名</th>
+                        <th>手机号</th>
+                        <th>地址</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="user-tbody">
+                    <tr><td colspan="5" class="text-center" style="padding:40px;color:#909399;">加载中...</td></tr>
+                </tbody>
+            </table>
+
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="add-modal">
+        <div class="modal-box">
+            <h2>添加用户</h2>
+            <form id="add-form" onsubmit="submitAdd(event)">
+                <div class="form-group">
+                    <label for="add-username">用户名</label>
+                    <input type="text" id="add-username" required placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="add-password">密码</label>
+                    <input type="password" id="add-password" required placeholder="请输入密码">
+                </div>
+                <div class="form-group">
+                    <label for="add-phone">手机号</label>
+                    <input type="text" id="add-phone" required placeholder="请输入手机号">
+                </div>
+                <div class="form-group">
+                    <label for="add-address">地址</label>
+                    <input type="text" id="add-address" required placeholder="请输入地址">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="el-button el-button--primary">提交</button>
+                    <button type="button" class="el-button el-button--info" onclick="closeModal('add-modal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal-box">
+            <h2>编辑用户</h2>
+            <form id="edit-form" onsubmit="submitEdit(event)">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label for="edit-username">用户名</label>
+                    <input type="text" id="edit-username" required placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="edit-password">新密码</label>
+                    <input type="password" id="edit-password" placeholder="留空则不修改">
+                </div>
+                <div class="form-group">
+                    <label for="edit-phone">手机号</label>
+                    <input type="text" id="edit-phone" required placeholder="请输入手机号">
+                </div>
+                <div class="form-group">
+                    <label for="edit-address">地址</label>
+                    <input type="text" id="edit-address" required placeholder="请输入地址">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="el-button el-button--primary">保存</button>
+                    <button type="button" class="el-button el-button--info" onclick="closeModal('edit-modal')">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin-config.js"></script>
+    <script src="admin-utils.js"></script>
+    <script src="admin-api.js"></script>
+    <script>
+        let allUsers = [];
+        let currentPage = 1;
+        let pageSize = 10;
+
+        function showAlert(msg, type) {
+            const existing = document.querySelector('.alert');
+            if (existing) existing.remove();
+            const div = document.createElement('div');
+            div.className = 'alert alert-' + type;
+            div.textContent = msg;
+            document.body.insertBefore(div, document.body.firstChild);
+            setTimeout(function() { div.remove(); }, 3000);
+        }
+
+        function checkPermission() {
+            const user = AdminUtils.getUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return false;
+            }
+            if (user.role !== 1) {
+                showAlert('无权限访问管理后台', 'error');
+                setTimeout(function() { window.location.href = '../wardrobe_user/home.html'; }, 1500);
+                return false;
+            }
+            document.getElementById('admin-username').textContent = user.userName + '，欢迎你';
+            return true;
+        }
+
+        function logout() {
+            AdminUtils.logout();
+        }
+
+        function renderTable(users) {
+            const tbody = document.getElementById('user-tbody');
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:40px;color:#909399;">暂无用户数据</td></tr>';
+                return;
+            }
+            tbody.innerHTML = users.map(function(u) {
+                return '<tr>' +
+                    '<td>' + u.id + '</td>' +
+                    '<td>' + escapeHtml(u.userName) + '</td>' +
+                    '<td>' + escapeHtml(u.phone) + '</td>' +
+                    '<td>' + escapeHtml(u.address || '') + '</td>' +
+                    '<td>' +
+                        '<button class="action-btn edit" onclick="editUser(' + u.id + ')">编辑</button>' +
+                        '<button class="action-btn delete" onclick="deleteUser(' + u.id + ')">删除</button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+
+        function renderPagination(total) {
+            const totalPages = Math.ceil(total / pageSize) || 1;
+            const container = document.getElementById('pagination');
+            if (totalPages <= 1) {
+                container.innerHTML = '<span class="page-info">共 ' + total + ' 条</span>';
+                return;
+            }
+            var html = '<span class="page-info">共 ' + total + ' 条</span>';
+            html += '<button onclick="goPage(1)" ' + (currentPage === 1 ? 'disabled' : '') + '>首页</button>';
+            html += '<button onclick="goPage(' + (currentPage - 1) + ')" ' + (currentPage === 1 ? 'disabled' : '') + '>上一页</button>';
+            var start = Math.max(1, currentPage - 2);
+            var end = Math.min(totalPages, start + 4);
+            for (var i = start; i <= end; i++) {
+                html += '<button class="' + (i === currentPage ? 'active' : '') + '" onclick="goPage(' + i + ')">' + i + '</button>';
+            }
+            html += '<button onclick="goPage(' + (currentPage + 1) + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>下一页</button>';
+            html += '<button onclick="goPage(' + totalPages + ')" ' + (currentPage === totalPages ? 'disabled' : '') + '>末页</button>';
+            html += '<select onchange="pageSize=parseInt(this.value);currentPage=1;loadUsers()">';
+            [5,10,20].forEach(function(s) {
+                html += '<option value="' + s + '" ' + (pageSize === s ? 'selected' : '') + '>' + s + '条/页</option>';
+            });
+            html += '</select>';
+            container.innerHTML = html;
+        }
+
+        function goPage(page) {
+            currentPage = page;
+            applyPage();
+        }
+
+        function applyPage() {
+            var start = (currentPage - 1) * pageSize;
+            var end = start + pageSize;
+            renderTable(allUsers.slice(start, end));
+            renderPagination(allUsers.length);
+        }
+
+        async function loadUsers() {
+            try {
+                var users = await AdminAPI.getAllUsers();
+                allUsers = users || [];
+                currentPage = 1;
+                applyPage();
+            } catch (e) {
+                showAlert('获取用户列表失败', 'error');
+            }
+        }
+
+        async function searchUsers() {
+            var keyword = document.getElementById('search-input').value.trim();
+            if (!keyword) {
+                loadUsers();
+                return;
+            }
+            try {
+                var users = await AdminAPI.get('/searchUser', { nameOrPhone: keyword });
+                allUsers = users || [];
+                currentPage = 1;
+                applyPage();
+            } catch (e) {
+                showAlert('搜索失败', 'error');
+            }
+        }
+
+        function showAddModal() {
+            document.getElementById('add-form').reset();
+            document.getElementById('add-modal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        async function submitAdd(e) {
+            e.preventDefault();
+            var data = {
+                userName: document.getElementById('add-username').value.trim(),
+                password: document.getElementById('add-password').value.trim(),
+                phone: document.getElementById('add-phone').value.trim(),
+                address: document.getElementById('add-address').value.trim()
+            };
+            if (!data.userName || !data.password || !data.phone) {
+                showAlert('请填写完整信息', 'error');
+                return;
+            }
+            try {
+                var res = await AdminAPI.addUser(data);
+                showAlert(res || '添加成功', 'success');
+                closeModal('add-modal');
+                loadUsers();
+            } catch (e) {
+                showAlert('添加失败', 'error');
+            }
+        }
+
+        async function editUser(id) {
+            var user = allUsers.find(function(u) { return u.id === id; });
+            if (!user) return;
+            document.getElementById('edit-id').value = user.id;
+            document.getElementById('edit-username').value = user.userName;
+            document.getElementById('edit-password').value = '';
+            document.getElementById('edit-phone').value = user.phone;
+            document.getElementById('edit-address').value = user.address || '';
+            document.getElementById('edit-modal').classList.add('active');
+        }
+
+        async function submitEdit(e) {
+            e.preventDefault();
+            var data = {
+                id: parseInt(document.getElementById('edit-id').value),
+                userName: document.getElementById('edit-username').value.trim(),
+                password: document.getElementById('edit-password').value.trim(),
+                phone: document.getElementById('edit-phone').value.trim(),
+                address: document.getElementById('edit-address').value.trim()
+            };
+            if (!data.userName) {
+                showAlert('用户名不能为空', 'error');
+                return;
+            }
+            try {
+                var res = await AdminAPI.updateUser(data);
+                showAlert(res || '修改成功', 'success');
+                closeModal('edit-modal');
+                loadUsers();
+            } catch (e) {
+                showAlert('修改失败', 'error');
+            }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('确定要删除该用户吗？')) return;
+            try {
+                var res = await AdminAPI.delUser(id);
+                showAlert(res || '删除成功', 'success');
+                loadUsers();
+            } catch (e) {
+                showAlert('删除失败', 'error');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkPermission()) return;
+            loadUsers();
+            document.getElementById('search-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') searchUsers();
+            });
+        });
+    </script>
+</body>
+</html>

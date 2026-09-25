@@ -1,0 +1,163 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 网上衣橱</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/ai-assistant.css?v=3.0">
+    <style>#particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;background:transparent}</style>
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航容器 -->
+        <div id="header-container"></div>
+
+        <!-- 主要内容 -->
+        <main id="main-container">
+            <div>
+                <div class="box-card">
+                    <div class="card-header">
+                        <h2>个人信息</h2>
+                    </div>
+                    <form id="personal-form" onsubmit="handleSubmit(event)">
+                        <div class="form-group">
+                            <label for="userName">姓名:</label>
+                            <input type="text" id="userName" name="userName" required minlength="2" maxlength="10"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">原始密码:</label>
+                            <input type="password" id="password" name="password" required minlength="6" maxlength="16"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="newpsw">新密码:</label>
+                            <input type="password" id="newpsw" name="newpsw" required minlength="6" maxlength="16"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">手机号:</label>
+                            <input type="tel" id="phone" name="phone" required pattern="1[34578]\d{9}"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="address">地址:</label>
+                            <input type="text" id="address" name="address" required/>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="el-button el-button--primary">更新</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部容器 -->
+        <div id="footer-container"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
+    <script src="js/components-loader.js"></script>
+    <script src="js/particles.js"></script>
+
+    <script>
+        // 加载个人信息
+        async function loadPersonInfo() {
+            const user = Store.getUser();
+            if (!user) {
+                Utils.showAlert('请先登录', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            try {
+                const personInfo = await API.getCurrentUser(user.id);
+                
+                document.getElementById('userName').value = personInfo.userName || '';
+                document.getElementById('phone').value = personInfo.phone || '';
+                document.getElementById('address').value = personInfo.address || '';
+            } catch (error) {
+                console.error('Failed to load person info:', error);
+                Utils.showAlert('加载个人信息失败', 'error');
+            }
+        }
+
+        // 提交表单
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            const userName = document.getElementById('userName').value;
+            const password = document.getElementById('password').value;
+            const newpsw = document.getElementById('newpsw').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+
+            // 验证
+            if (!Utils.validateRequired(userName) || userName.length < 2 || userName.length > 10) {
+                Utils.showAlert('用户姓名长度在 2 到 10 个字符', 'error');
+                return;
+            }
+
+            if (!Utils.validateRequired(password) || password.length < 6 || password.length > 16) {
+                Utils.showAlert('密码长度在 6 到 16 个字符', 'error');
+                return;
+            }
+
+            if (!Utils.validateRequired(newpsw) || newpsw.length < 6 || newpsw.length > 16) {
+                Utils.showAlert('新密码长度在 6 到 16 个字符', 'error');
+                return;
+            }
+
+            if (!Utils.validateRequired(phone) || !Utils.validatePhone(phone)) {
+                Utils.showAlert('请输入正确的手机号码', 'error');
+                return;
+            }
+
+            if (!Utils.validateRequired(address)) {
+                Utils.showAlert('请输入地址', 'error');
+                return;
+            }
+
+            const user = Store.getUser();
+            const data = {
+                id: user.id,
+                userName: userName,
+                password: password,
+                newpsw: newpsw,
+                phone: phone,
+                address: address
+            };
+
+            try {
+                const result = await API.updateUser(data);
+                Utils.showAlert(result || '更新成功', 'success');
+                
+                // 更新本地存储的用户信息
+                const updatedUser = { ...user, userName, phone, address };
+                Store.setUser(updatedUser);
+                
+                // 清空密码字段
+                document.getElementById('password').value = '';
+                document.getElementById('newpsw').value = '';
+            } catch (error) {
+                console.error('Update failed:', error);
+                Utils.showAlert('更新失败', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化组件（头部和底部）
+            ComponentLoader.init('personal.html');
+            loadPersonInfo();
+        });
+    </script>
+    <script src="js/components/ai-assistant.js"></script>
+    <script>AIAssistant.init();</script>
+</body>
+</html>

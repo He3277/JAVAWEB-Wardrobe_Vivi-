@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vivi Style后台管理 - 导航</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 90%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .link-list {
+            list-style: none;
+        }
+
+        .link-item {
+            margin-bottom: 15px;
+        }
+
+        .link-item a {
+            display: block;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            border-left: 4px solid #667eea;
+        }
+
+        .link-item a:hover {
+            background: #667eea;
+            color: white;
+            transform: translateX(10px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .link-item .title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .link-item .desc {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .link-item a:hover .desc {
+            color: #e0e0e0;
+        }
+
+        .info {
+            margin-top: 30px;
+            padding: 15px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            border-radius: 5px;
+            font-size: 13px;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vivi Style后台管理系统</h1>
+        <p class="subtitle">纯HTML版本 - 无需构建工具</p>
+
+        <ul class="link-list">
+            <li class="link-item">
+                <a href="login.html">
+                    <div class="title">登录页面</div>
+                    <div class="desc">管理员登录入口</div>
+                </a>
+            </li>
+            <li class="link-item">
+                <a href="home.html">
+                    <div class="title">首页仪表盘</div>
+                    <div class="desc">数据概览、统计图表（需要先登录）</div>
+                </a>
+            </li>
+            <li class="link-item">
+                <a href="clothes-manage.html">
+                    <div class="title">服装管理</div>
+                    <div class="desc">查看、添加、编辑、删除服装信息</div>
+                </a>
+            </li>
+            <li class="link-item">
+                <a href="order-manage.html">
+                    <div class="title">订单管理</div>
+                    <div class="desc">查看订单、发货等操作</div>
+                </a>
+            </li>
+            <li class="link-item">
+                <a href="user-manage.html">
+                    <div class="title">用户管理</div>
+                    <div class="desc">查看、添加、编辑、删除用户</div>
+                </a>
+            </li>
+        </ul>
+
+        <div class="info">
+            <strong>提示：</strong><br>
+            1. 建议从登录页面开始使用<br>
+            2. 确保 Tomcat 服务器已启动（端口8080）<br>
+            3. 需要联网以加载 CDN 资源
+        </div>
+    </div>
+</body>
+</html>

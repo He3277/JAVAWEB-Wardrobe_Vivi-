@@ -1,0 +1,141 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>服装详情 - 网上衣橱</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/ai-assistant.css?v=3.0">
+    <style>#particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;background:transparent}</style>
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航容器 -->
+        <div id="header-container"></div>
+
+        <!-- 主要内容 -->
+        <main id="main-container">
+            <div class="clothing-container">
+                <div class="clothing-detail-row">
+                    <div class="clothing-image-col">
+                        <div class="clothing-image-wrapper">
+                            <img id="detail-image" src="" alt="服装图片"/>
+                        </div>
+                    </div>
+                    <div class="clothing-detail-col">
+                        <h1 class="clothing-name" id="detail-name"></h1>
+                        <p class="clothing-style">风格：<strong id="detail-style"></strong></p>
+                        <div class="clothing-size">
+                            <label class="size-label">尺码:</label>
+                            <div class="size-options" id="size-options"></div>
+                        </div>
+                        <h2 class="clothing-price" id="detail-price"></h2>
+                        <button class="el-button el-button--primary add-to-cart-btn" onclick="addToCart()">加入购物车</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部容器 -->
+        <div id="footer-container"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
+    <script src="js/components-loader.js"></script>
+    <script src="js/particles.js"></script>
+
+    <script>
+        let selectedSize = null;
+        let clothingData = null;
+
+        // 加载商品详情
+        async function loadClothDetails() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const clothId = urlParams.get('clothId');
+            
+            if (!clothId) {
+                Utils.showAlert('缺少商品 ID', 'error');
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 2000);
+                return;
+            }
+
+            try {
+                const clothing = await API.clothDetails(clothId);
+                clothingData = clothing;
+                
+                document.getElementById('detail-image').src = CONFIG.IMAGE_BASE_URL + clothing.image;
+                document.getElementById('detail-name').textContent = clothing.clothName;
+                document.getElementById('detail-style').textContent = clothing.style;
+                document.getElementById('detail-price').textContent = Utils.formatCurrency(clothing.price);
+
+                const sizeOptions = document.getElementById('size-options');
+                if (clothing.sizeList && clothing.sizeList.length > 0) {
+                    sizeOptions.innerHTML = clothing.sizeList.map(size => `
+                        <div class="size-option" onclick="selectSize('${size.sizeName}', this)">
+                            ${size.sizeName}
+                        </div>
+                    `).join('');
+                } else {
+                    sizeOptions.innerHTML = '<div class="empty-data">暂无尺码信息</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load clothing details:', error);
+                Utils.showAlert('加载商品详情失败', 'error');
+            }
+        }
+
+        // 选择尺码
+        function selectSize(sizeName, element) {
+            selectedSize = sizeName;
+            document.querySelectorAll('.size-option').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        // 添加到购物车
+        async function addToCart() {
+            if (!selectedSize) {
+                Utils.showAlert('请选择尺码！', 'error');
+                return;
+            }
+
+            const user = Store.getUser();
+            if (!user) {
+                Utils.showAlert('请先登录！', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            try {
+                const result = await API.addToCart(
+                    clothingData.id,
+                    selectedSize,
+                    user.id
+                );
+                Utils.showAlert('成功加入购物车', 'success');
+            } catch (error) {
+                console.error('Add to cart failed:', error);
+                Utils.showAlert('添加购物车失败', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化组件（头部和底部）
+            ComponentLoader.init('details.html');
+            loadClothDetails();
+        });
+    </script>
+    <script src="js/components/ai-assistant.js"></script>
+    <script>AIAssistant.init();</script>
+</body>
+</html>

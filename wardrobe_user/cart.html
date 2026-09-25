@@ -1,0 +1,185 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的购物车 - 网上衣橱</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/ai-assistant.css?v=3.0">
+    <style>#particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;background:transparent}</style>
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航容器 -->
+        <div id="header-container"></div>
+
+        <!-- 主要内容 -->
+        <main id="main-container">
+            <div>
+                <div class="box-card">
+                    <div class="card-header">
+                        <h2>我的购物车</h2>
+                    </div>
+                    <table class="el-table">
+                        <thead>
+                            <tr>
+                                <th>服装名称</th>
+                                <th>图片</th>
+                                <th>风格</th>
+                                <th>尺码</th>
+                                <th>单价</th>
+                                <th>数量</th>
+                                <th>小计</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cart-items">
+                            <tr><td colspan="8" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="total-price-container">
+                        总价：<span id="total-price"></span>
+                        <button class="el-button el-button--danger price-button" onclick="submitOrder()">结算</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部容器 -->
+        <div id="footer-container"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
+    <script src="js/components-loader.js"></script>
+    <script src="js/particles.js"></script>
+
+    <script>
+        let cartDataList = [];
+
+        // 加载购物车数据
+        async function loadCartData() {
+            const user = Store.getUser();
+            if (!user) {
+                Utils.showAlert('请先登录', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            try {
+                const cartData = await API.getCartDataByUser(user.id);
+                cartDataList = cartData || [];
+                renderCart();
+            } catch (error) {
+                console.error('Failed to load cart data:', error);
+                Utils.showAlert('加载购物车失败', 'error');
+            }
+        }
+
+        // 渲染购物车
+        function renderCart() {
+            const cartItems = document.getElementById('cart-items');
+            const totalPriceEl = document.getElementById('total-price');
+
+            if (cartDataList.length === 0) {
+                cartItems.innerHTML = '<tr><td colspan="8" class="empty-data">购物车为空</td></tr>';
+                totalPriceEl.textContent = Utils.formatCurrency(0);
+                return;
+            }
+
+            cartItems.innerHTML = cartDataList.map(item => `
+                <tr>
+                    <td>${item.clothes.clothName}</td>
+                    <td><img class="el-image" style="width: 100px; height: 120px;" src="${CONFIG.IMAGE_BASE_URL}${item.clothes.image}"/></td>
+                    <td>${item.clothes.style}</td>
+                    <td>${item.clothSize}</td>
+                    <td>${Utils.formatCurrency(item.clothes.price)}</td>
+                    <td>
+                        <input type="number" class="input-number" value="${item.amount}" min="1" max="10" 
+                               onchange="updateAmount(${item.id}, this.value)"/>
+                    </td>
+                    <td>${Utils.formatCurrency(item.clothes.price * item.amount)}</td>
+                    <td>
+                        <button class="el-button el-button--info" onclick="deleteItem(${item.id})">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            const total = cartDataList.reduce((sum, item) => sum + (item.clothes.price * item.amount), 0);
+            totalPriceEl.textContent = Utils.formatCurrency(total);
+        }
+
+        // 更新数量
+        async function updateAmount(id, amount) {
+            try {
+                await API.updateCartData(id, parseInt(amount));
+                await loadCartData();
+            } catch (error) {
+                console.error('Update cart failed:', error);
+                Utils.showAlert('更新购物车失败', 'error');
+            }
+        }
+
+        // 删除商品
+        async function deleteItem(id) {
+            try {
+                const result = await API.delCartData(id);
+                Utils.showAlert(result || '已删除', 'success');
+                await loadCartData();
+            } catch (error) {
+                console.error('Delete failed:', error);
+                Utils.showAlert('删除失败', 'error');
+            }
+        }
+
+        // 提交订单
+        async function submitOrder() {
+            if (cartDataList.length === 0) {
+                Utils.showAlert('结算失败，请先添加商品于购物车', 'error');
+                return;
+            }
+
+            const user = Store.getUser();
+            const orderList = cartDataList.map(item => ({
+                clothesDetails: `服装编号${item.clothId}，${item.clothes.clothName}${item.clothSize}码（${item.clothes.price.toFixed(2)}）×${item.amount}`,
+                price: item.clothes.price.toFixed(2) * item.amount,
+                status: '0',
+                userId: user.id,
+                address: user.address
+            }));
+
+            Utils.showAlert('正在提交订单，请稍候...', 'info');
+            try {
+                const result = await API.addOrder(orderList);
+                if (result && result.success) {
+                    Utils.showAlert('结算成功！', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'order.html';
+                    }, 1000);
+                } else {
+                    Utils.showAlert(result.message || '提交订单失败', 'error');
+                }
+            } catch (error) {
+                console.error('Submit order failed:', error);
+                Utils.showAlert('提交订单失败', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化组件（头部和底部）
+            ComponentLoader.init('cart.html');
+            loadCartData();
+        });
+    </script>
+    <script src="js/components/ai-assistant.js"></script>
+    <script>AIAssistant.init();</script>
+</body>
+</html>

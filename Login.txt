@@ -1,0 +1,7 @@
+· 用户端:http://localhost:8080/wardrobe_user/home.html
+
+· 后台管理:http://localhost:8080/wardrobe_admin/login.html
+
+· 用户端：打开 wardrobe_user/login.html → 输入 user / user123
+  
+· 管理端：打开 wardrobe_admin/login.html → 输入 admin / admin123

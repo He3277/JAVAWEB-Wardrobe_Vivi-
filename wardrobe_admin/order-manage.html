@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>订单管理 - Vivi Style后台</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="../wardrobe_user/css/style.css">
+    <style>
+        .admin-header { background-color: #4682B4; height: 60px; display: flex; align-items: center; padding: 0 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .admin-header .title { color: #fff; font-size: 18px; font-weight: bold; }
+        .admin-header .nav-links { margin-left: 40px; display: flex; gap: 20px; }
+        .admin-header .nav-links a { color: rgba(255,255,255,0.8); text-decoration: none; font-size: 14px; }
+        .admin-header .nav-links a:hover, .admin-header .nav-links a.active { color: #fff; }
+        .admin-header .user-info { margin-left: auto; color: #fff; font-size: 13px; }
+        .admin-header .user-info a { color: rgba(255,255,255,0.8); text-decoration: none; margin-left: 10px; }
+        .admin-header .user-info a:hover { color: #fff; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+        .toolbar-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .toolbar-left select { padding: 8px 12px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 14px; color: #606266; }
+        .order-table { width: 100%; border-collapse: collapse; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .order-table th, .order-table td { padding: 10px 8px; text-align: left; border-bottom: 1px solid #ebeef5; font-size: 13px; }
+        .order-table th { background-color: #f5f7fa; color: #606266; font-weight: bold; }
+        .order-table tr:hover { background-color: #f5f7fa; }
+        .order-table .clothes-details-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .status-tag { display: inline-block; padding: 3px 10px; border-radius: 10px; font-size: 12px; }
+        .status-tag.unpaid { background-color: #fdf6ec; color: #e6a23c; border: 1px solid #faecd8; }
+        .status-tag.undelivered { background-color: #f0f9eb; color: #67c23a; border: 1px solid #e1f3d8; }
+        .status-tag.shipped { background-color: #ecf5ff; color: #409eff; border: 1px solid #d9ecff; }
+        .status-tag.received { background-color: #f4f4f5; color: #909399; border: 1px solid #e9e9eb; }
+        .action-btn { padding: 4px 12px; font-size: 12px; cursor: pointer; border: none; border-radius: 4px; }
+        .action-btn.ship { background-color: #67c23a; color: #fff; }
+        .action-btn.ship:hover { background-color: #85ce61; }
+        .action-btn.delete { background-color: #F56C6C; color: #fff; margin-left: 4px; }
+        .action-btn.delete:hover { background-color: #f78989; }
+        .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 5px; margin-top: 20px; }
+        .pagination button { padding: 6px 12px; border: 1px solid #dcdfe6; background: #fff; border-radius: 4px; cursor: pointer; color: #606266; font-size: 13px; }
+        .pagination button:hover { border-color: #409EFF; color: #409EFF; }
+        .pagination button.active { background: #409EFF; color: #fff; border-color: #409EFF; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .pagination .page-info { margin: 0 10px; color: #606266; font-size: 13px; }
+        .pagination select { padding: 6px 8px; border: 1px solid #dcdfe6; border-radius: 4px; color: #606266; font-size: 13px; }
+        .order-detail-modal { display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.4); z-index:1000; justify-content:center; align-items:center; }
+        .order-detail-modal.active { display: flex; }
+        .detail-box { background:#fff; border-radius:8px; padding:30px; width:600px; max-width:90%; box-shadow:0 4px 20px rgba(0,0,0,0.2); max-height:80vh; overflow-y:auto; }
+        .detail-box h2 { margin-bottom:20px; color:#333; }
+        .detail-table { width:100%; }
+        .detail-table td { padding:8px 10px; font-size:13px; border-bottom:1px solid #ebeef5; }
+        .detail-table td:first-child { color:#909399; width:100px; }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <span class="title">Vivi Style 后台管理</span>
+        <div class="nav-links">
+            <a href="home.html">首页</a>
+            <a href="clothes-manage.html">服装管理</a>
+            <a href="user-manage.html">用户管理</a>
+            <a href="order-manage.html" class="active">订单管理</a>
+        </div>
+        <div class="user-info">
+            <span id="admin-username"></span>
+            <a href="login.html" onclick="logout()">退出登录</a>
+        </div>
+    </div>
+    <div id="main-container">
+        <div class="box-card">
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <input type="text" id="search-input" class="search-input" placeholder="搜索用户名" style="width:180px;">
+                    <select id="search-status">
+                        <option value="">所有状态</option>
+                        <option value="0">未付款</option>
+                        <option value="1">未发货</option>
+                        <option value="2">已发货</option>
+                        <option value="3">已收货</option>
+                    </select>
+                    <button class="el-button el-button--primary search-button" onclick="searchOrders()">搜索</button>
+                </div>
+            </div>
+            <table class="order-table" id="order-table">
+                <thead>
+                    <tr><th>编号</th><th>用户</th><th>服装详情</th><th>金额</th><th>状态</th><th>收货地址</th><th>下单时间</th><th>操作</th></tr>
+                </thead>
+                <tbody id="order-tbody"><tr><td colspan="8" class="text-center" style="padding:40px;color:#909399;">加载中...</td></tr></tbody>
+            </table>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+
+    <div class="order-detail-modal" id="detail-modal">
+        <div class="detail-box">
+            <h2>订单详情</h2>
+            <table class="detail-table" id="detail-table"></table>
+            <div style="text-align:center;margin-top:20px;">
+                <button class="el-button el-button--info" onclick="document.getElementById('detail-modal').classList.remove('active')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin-config.js"></script>
+    <script src="admin-utils.js"></script>
+    <script src="admin-api.js"></script>
+    <script>
+        var allOrders = [];
+        var currentPage = 1, pageSize = 10;
+        var orderList = [];
+
+        function showMsg(msg, type) {
+            var e = document.querySelector('.alert'); if (e) e.remove();
+            var d = document.createElement('div'); d.className = 'alert alert-' + type; d.textContent = msg;
+            document.body.insertBefore(d, document.body.firstChild);
+            setTimeout(function(){ d.remove(); }, 3000);
+        }
+
+        function checkPermission() {
+            var u = AdminUtils.getUser();
+            if (!u) { window.location.href = 'login.html'; return false; }
+            if (u.role !== 1) { showMsg('无权限', 'error'); setTimeout(function(){ window.location.href='../wardrobe_user/home.html'; },1500); return false; }
+            document.getElementById('admin-username').textContent = u.userName + '，欢迎你';
+            return true;
+        }
+
+        function logout() { AdminUtils.logout(); }
+
+        function statusText(s) {
+            var map = { '0': '未付款', '1': '未发货', '2': '已发货', '3': '已收货' };
+            return map[s] || '未知';
+        }
+
+        function statusClass(s) {
+            var map = { '0': 'unpaid', '1': 'undelivered', '2': 'shipped', '3': 'received' };
+            return map[s] || '';
+        }
+
+        function esc(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
+
+        function renderTable(list) {
+            var tbody = document.getElementById('order-tbody');
+            if (!list || list.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding:40px;color:#909399;">暂无数据</td></tr>';
+                return;
+            }
+            tbody.innerHTML = list.map(function(o) {
+                var st = o.status != null ? String(o.status) : '0';
+                var actions = '';
+                if (st === '1') {
+                    actions += '<button class="action-btn ship" onclick="shipOrder(' + o.id + ')">发货</button>';
+                }
+                actions += '<button class="action-btn delete" onclick="deleteOrder(' + o.id + ')">删除</button>';
+                return '<tr>' +
+                    '<td>' + (o.id != null ? o.id : '-') + '</td>' +
+                    '<td>' + esc(o.user) + '</td>' +
+                    '<td class="clothes-details-cell" title="' + esc(o.clothesDetails) + '">' + esc(o.clothesDetails) + '</td>' +
+                    '<td>￥' + (o.price != null ? parseFloat(o.price).toFixed(2) : '0.00') + '</td>' +
+                    '<td><span class="status-tag ' + statusClass(st) + '">' + statusText(st) + '</span></td>' +
+                    '<td>' + esc(o.address) + '</td>' +
+                    '<td>' + (o.time ? o.time.replace('T', ' ').substring(0, 16) : '-') + '</td>' +
+                    '<td>' + actions + '</td></tr>';
+            }).join('');
+        }
+
+        function renderPagination(total) {
+            var tp = Math.ceil(total / pageSize) || 1;
+            var c = document.getElementById('pagination');
+            if (tp <= 1) { c.innerHTML = '<span class="page-info">共 ' + total + ' 条</span>'; return; }
+            var h = '<span class="page-info">共 ' + total + ' 条</span>';
+            h += '<button onclick="goPage(1)"' + (currentPage===1?' disabled':'') + '>首页</button>';
+            h += '<button onclick="goPage('+(currentPage-1)+')"' + (currentPage===1?' disabled':'') + '>上一页</button>';
+            var s = Math.max(1, currentPage-2), e = Math.min(tp, s+4);
+            for (var i = s; i <= e; i++) h += '<button class="'+(i===currentPage?'active':'')+'" onclick="goPage('+i+')">'+i+'</button>';
+            h += '<button onclick="goPage('+(currentPage+1)+')"'+(currentPage===tp?' disabled':'')+'>下一页</button>';
+            h += '<button onclick="goPage('+tp+')"'+(currentPage===tp?' disabled':'')+'>末页</button>';
+            h += '<select onchange="pageSize=parseInt(this.value);currentPage=1;applyPage()">';
+            [5,10,20].forEach(function(s){ h += '<option value="'+s+'"'+(pageSize===s?' selected':'')+'>'+s+'条/页</option>'; });
+            h += '</select>';
+            c.innerHTML = h;
+        }
+
+        function goPage(p) { currentPage = p; applyPage(); }
+
+        function applyPage() {
+            var start = (currentPage-1)*pageSize;
+            renderTable(orderList.slice(start, start+pageSize));
+            renderPagination(orderList.length);
+        }
+
+        async function loadOrders() {
+            try {
+                allOrders = await AdminAPI.getAllOrders() || [];
+                orderList = allOrders.slice();
+                currentPage = 1;
+                applyPage();
+            } catch(e) { showMsg('获取订单列表失败', 'error'); }
+        }
+
+        async function searchOrders() {
+            var userName = document.getElementById('search-input').value.trim();
+            var status = document.getElementById('search-status').value;
+            if (!userName && !status) { orderList = allOrders.slice(); currentPage = 1; applyPage(); return; }
+            try {
+                var params = {};
+                if (userName) params.userName = userName;
+                if (status) params.status = status;
+                var res = await AdminAPI.get('/searchOrder', params);
+                orderList = res || [];
+                currentPage = 1;
+                applyPage();
+            } catch(e) { showMsg('搜索失败', 'error'); }
+        }
+
+        async function shipOrder(id) {
+            if (!confirm('确定要发货该订单吗？')) return;
+            try {
+                var res = await AdminAPI.updateOrderStatus(id);
+                showMsg(res || '发货成功', 'success');
+                loadOrders();
+            } catch(e) { showMsg('发货失败', 'error'); }
+        }
+
+        async function deleteOrder(id) {
+            if (!confirm('确定要删除该订单吗？')) return;
+            try {
+                var res = await AdminAPI.delOrder(id);
+                showMsg(res || '删除成功', 'success');
+                loadOrders();
+            } catch(e) { showMsg('删除失败', 'error'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkPermission()) return;
+            loadOrders();
+            document.getElementById('search-input').addEventListener('keypress', function(e) { if (e.key==='Enter') searchOrders(); });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - 网上衣橱</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/ai-assistant.css?v=3.0">
+    <style>#particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;background:transparent}</style>
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航容器 -->
+        <div id="header-container"></div>
+
+        <!-- 主要内容 -->
+        <main id="main-container">
+            <div class="login-container">
+                <div class="box-card">
+                    <h1>用户登录</h1>
+                    <form id="login-form" onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label for="userInfo">用户名/电话</label>
+                            <input type="text" id="userInfo" name="userInfo" required placeholder="请输入用户名或手机号"/>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">密码</label>
+                            <input type="password" id="password" name="password" required placeholder="请输入密码"/>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="el-button el-button--primary">登录</button>
+                            <button type="button" class="el-button el-button--info" onclick="resetForm()">重置</button>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <a href="../wardrobe_admin/login.html" style="color: #409EFF; font-size: 13px; text-decoration: none;">管理员登录</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部容器 -->
+        <div id="footer-container"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
+    <script src="js/components-loader.js"></script>
+    <script src="js/particles.js"></script>
+
+    <script>
+        // 处理登录
+        async function handleLogin(event) {
+            event.preventDefault();
+            const userInfo = document.getElementById('userInfo').value;
+            const password = document.getElementById('password').value;
+
+            if (!Utils.validateRequired(userInfo)) {
+                Utils.showAlert('请输入用户名或手机号', 'error');
+                return;
+            }
+
+            if (!Utils.validateRequired(password)) {
+                Utils.showAlert('请输入密码', 'error');
+                return;
+            }
+
+            try {
+                const result = await API.login(userInfo, password);
+                if (result) {
+                    Store.setToken(JSON.stringify(result.token));
+                    Store.setUser(result);
+                    Utils.showAlert('登录成功！', 'success');
+                    setTimeout(() => {
+                        if (result.role === 1) {
+                            window.location.href = '../wardrobe_admin/home.html';
+                        } else {
+                            window.location.href = 'home.html';
+                        }
+                    }, 1000);
+                } else {
+                    Utils.showAlert('用户名或密码错误！', 'error');
+                }
+                resetForm();
+            } catch (error) {
+                console.error('Login failed:', error);
+                Utils.showAlert('登录失败', 'error');
+            }
+        }
+
+        // 重置表单
+        function resetForm() {
+            document.getElementById('login-form').reset();
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化组件（头部和底部）
+            ComponentLoader.init('login.html');
+            // 如果已经登录，跳转到首页
+            if (Store.isAuthenticated()) {
+                window.location.href = 'home.html';
+            }
+        });
+    </script>
+    <script src="js/components/ai-assistant.js"></script>
+    <script>AIAssistant.init();</script>
+</body>
+</html>

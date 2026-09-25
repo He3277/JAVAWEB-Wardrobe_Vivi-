@@ -1,0 +1,183 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本季新品 - 网上衣橱</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/ai-assistant.css?v=3.0">
+    <style>#particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;background:transparent}</style>
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航容器 -->
+        <div id="header-container"></div>
+
+        <!-- 主要内容 -->
+        <main id="main-container">
+            <div class="clothes-home">
+                <div class="topContent">
+                    <h2 class="title">本季新品</h2>
+                    <div class="search-row">
+                        <input type="text" id="clothes-search" class="search-input" placeholder="请输入服装名称" style="width:200px;">
+                        <button class="el-button el-button--primary search-button" onclick="searchClothes()">搜索</button>
+                    </div>
+                </div>
+                <div id="clothing-list" class="clothing-list">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部容器 -->
+        <div id="footer-container"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
+    <script src="js/components-loader.js"></script>
+    <script src="js/particles.js"></script>
+
+    <script>
+        // 获取当前风格筛选参数
+        let currentStyle = '';
+
+        // 从URL读取参数
+        function getUrlParam(name) {
+            const params = new URLSearchParams(window.location.search);
+            return params.get(name) || '';
+        }
+
+        // 加载服装列表
+        async function loadClothes(style) {
+            const clothingList = document.getElementById('clothing-list');
+
+            try {
+                const params = {};
+                if (style) {
+                    params.style = style;
+                    currentStyle = style;
+                } else {
+                    currentStyle = '';
+                }
+                const clothes = await API.allClothes(params);
+
+                if (clothes && clothes.length > 0) {
+                    clothingList.innerHTML = clothes.map(clothing => `
+                        <div class="clothing-item">
+                            <div class="image-container">
+                                <img src="${CONFIG.IMAGE_BASE_URL}${clothing.image}" alt="${clothing.clothName}"/>
+                            </div>
+                            <div class="clothing-details">
+                                <h3>${clothing.clothName}</h3>
+                                <i>${clothing.style}</i>
+                                <p><strong>${Utils.formatCurrency(clothing.price)}</strong></p>
+                                <button class="el-button el-button--primary" onclick="showDetails(${clothing.id})">查看详情</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    clothingList.innerHTML = '<div class="empty-data">暂无商品数据</div>';
+                }
+            } catch (error) {
+                console.error('Failed to load clothes:', error);
+                clothingList.innerHTML = '<div class="empty-data">加载失败</div>';
+            }
+        }
+
+        // 搜索服装（按名称，支持多关键词）
+        async function searchClothes() {
+            const searchText = document.getElementById('clothes-search').value.trim();
+            const clothingList = document.getElementById('clothing-list');
+
+            if (!searchText) {
+                loadClothes(currentStyle);
+                return;
+            }
+
+            try {
+                // 支持多关键词搜索（空格分隔）
+                const keywords = searchText.split(/\s+/).filter(k => k.length > 0);
+                let allResults = [];
+
+                // 对每个关键词进行搜索
+                for (const keyword of keywords) {
+                    const clothes = await API.get('/clothesByName', { clothesName: keyword });
+                    if (clothes && clothes.length > 0) {
+                        allResults = allResults.concat(clothes);
+                    }
+                }
+
+                // 去重（根据id）
+                const uniqueResults = allResults.filter((item, index, self) =>
+                    index === self.findIndex(t => t.id === item.id)
+                );
+
+                // 按相关性排序（名称包含所有关键词的排在前面）
+                uniqueResults.sort((a, b) => {
+                    const aMatch = keywords.filter(k => a.clothName.toLowerCase().includes(k.toLowerCase())).length;
+                    const bMatch = keywords.filter(k => b.clothName.toLowerCase().includes(k.toLowerCase())).length;
+                    return bMatch - aMatch;
+                });
+
+                if (uniqueResults.length > 0) {
+                    clothingList.innerHTML = uniqueResults.map(clothing => `
+                        <div class="clothing-item">
+                            <div class="image-container">
+                                <img src="${CONFIG.IMAGE_BASE_URL}${clothing.image}" alt="${clothing.clothName}"/>
+                            </div>
+                            <div class="clothing-details">
+                                <h3>${clothing.clothName}</h3>
+                                <i>${clothing.style}</i>
+                                <p><strong>${Utils.formatCurrency(clothing.price)}</strong></p>
+                                <button class="el-button el-button--primary" onclick="showDetails(${clothing.id})">查看详情</button>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    clothingList.innerHTML = '<div class="empty-data">没有找到相关服装</div>';
+                }
+            } catch (error) {
+                console.error('Search failed:', error);
+                Utils.showAlert('搜索失败', 'error');
+            }
+        }
+
+        // 查看详情
+        function showDetails(clothId) {
+            window.location.href = `details.html?clothId=${clothId}`;
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化组件（头部和底部）
+            ComponentLoader.init('home.html');
+
+            // 读取URL中的风格参数
+            const styleParam = getUrlParam('style');
+            if (styleParam) {
+                document.querySelector('.title').textContent = styleParam + '风格';
+            }
+
+            loadClothes(styleParam);
+            
+            // 绑定回车搜索事件
+            const searchInput = document.getElementById('clothes-search');
+            if (searchInput) {
+                searchInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        searchClothes();
+                    }
+                });
+            }
+        });
+    </script>
+    <script src="js/components/ai-assistant.js"></script>
+    <script>AIAssistant.init();</script>
+</body>
+</html>

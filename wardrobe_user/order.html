@@ -1,0 +1,188 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的订单 - 网上衣橱</title>
+    <link rel="icon" href="favicon.ico">
+    <link rel="stylesheet" href="css/style.css?v=3.0">
+    <link rel="stylesheet" href="css/ai-assistant.css?v=3.0">
+    <style>#particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;pointer-events:none;background:transparent}</style>
+</head>
+<body>
+    <div id="app">
+        <!-- 头部导航容器 -->
+        <div id="header-container"></div>
+
+        <!-- 主要内容 -->
+        <main id="main-container">
+            <div>
+                <div class="box-card">
+                    <div class="card-header">
+                        <h2>我的订单</h2>
+                    </div>
+                    <div class="order-status-menu">
+                        <div class="order-status-item active" onclick="filterByStatus(0, this)">未支付</div>
+                        <div class="order-status-item" onclick="filterByStatus(1, this)">未发货</div>
+                        <div class="order-status-item" onclick="filterByStatus(2, this)">已发货</div>
+                        <div class="order-status-item" onclick="filterByStatus(3, this)">已收货</div>
+                    </div>
+                    <table class="el-table">
+                        <thead>
+                            <tr>
+                                <th>订单编号</th>
+                                <th>商品详情</th>
+                                <th>订单价格</th>
+                                <th>订单状态</th>
+                                <th>下单时间</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="order-items">
+                            <tr><td colspan="6" class="loading">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部容器 -->
+        <div id="footer-container"></div>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/footer.js"></script>
+    <script src="js/components-loader.js"></script>
+    <script src="js/particles.js"></script>
+
+    <script>
+        let orderDataList = [];
+        let currentStatus = 0;
+
+        // 加载订单数据
+        async function loadOrderData() {
+            const user = Store.getUser();
+            if (!user) {
+                Utils.showAlert('请先登录', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+                return;
+            }
+
+            try {
+                const orderData = await API.getOrderByUser(user.id, currentStatus);
+                orderDataList = orderData || [];
+                renderOrders();
+            } catch (error) {
+                console.error('Failed to load order data:', error);
+                Utils.showAlert('加载订单失败', 'error');
+            }
+        }
+
+        // 筛选订单状态
+        function filterByStatus(status, element) {
+            currentStatus = status;
+            document.querySelectorAll('.order-status-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+            loadOrderData();
+        }
+
+        // 获取状态文本
+        function getStatusText(status) {
+            const statusMap = {
+                0: '未支付',
+                1: '未发货',
+                2: '已发货',
+                3: '已收货'
+            };
+            return statusMap[status] || '未知状态';
+        }
+
+        // 渲染订单列表
+        function renderOrders() {
+            const orderItems = document.getElementById('order-items');
+
+            if (orderDataList.length === 0) {
+                orderItems.innerHTML = '<tr><td colspan="6" class="empty-data">暂无订单</td></tr>';
+                return;
+            }
+
+            orderItems.innerHTML = orderDataList.map(order => `
+                <tr>
+                    <td>${order.id}</td>
+                    <td>${order.clothesDetails}</td>
+                    <td>${Utils.formatCurrency(order.price)}</td>
+                    <td>${getStatusText(order.status)}</td>
+                    <td>${Utils.formatDate(order.time)}</td>
+                    <td>
+                        ${order.status === '0' ? `
+                            <button class="el-button el-button--danger" onclick="payOrder(${order.id})">支付</button>
+                            <button class="el-button el-button--info ml-10" onclick="deleteOrder(${order.id})">删除</button>
+                        ` : ''}
+                        ${order.status === '1' ? `
+                            <button class="el-button el-button--info" onclick="deleteOrder(${order.id})">删除</button>
+                        ` : ''}
+                        ${order.status === '2' ? `
+                            <button class="el-button el-button--success" onclick="receiveOrder(${order.id})">收货</button>
+                        ` : ''}
+                        ${order.status === '3' ? `
+                            <button class="el-button el-button--info" onclick="deleteOrder(${order.id})">删除</button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 支付订单
+        async function payOrder(id) {
+            try {
+                const result = await API.payOrder(id);
+                Utils.showAlert('支付成功', 'success');
+                await loadOrderData();
+            } catch (error) {
+                console.error('Pay order failed:', error);
+                Utils.showAlert('支付失败', 'error');
+            }
+        }
+
+        // 确认收货
+        async function receiveOrder(id) {
+            try {
+                const result = await API.receiveOrder(id);
+                Utils.showAlert(result || '已确认收货', 'success');
+                await loadOrderData();
+            } catch (error) {
+                console.error('Receive order failed:', error);
+                Utils.showAlert('确认收货失败', 'error');
+            }
+        }
+
+        // 删除订单
+        async function deleteOrder(id) {
+            if (!confirm('确定要删除该订单吗？')) return;
+            try {
+                await API.delOrderData(id);
+                Utils.showAlert('删除成功', 'success');
+                await loadOrderData();
+            } catch (error) {
+                console.error('Delete order failed:', error);
+                Utils.showAlert('删除失败', 'error');
+            }
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('DOMContentLoaded', function() {
+            // 初始化组件（头部和底部）
+            ComponentLoader.init('order.html');
+            loadOrderData();
+        });
+    </script>
+    <script src="js/components/ai-assistant.js"></script>
+    <script>AIAssistant.init();</script>
+</body>
+</html>
